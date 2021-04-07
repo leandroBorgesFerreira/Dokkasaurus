@@ -1,12 +1,16 @@
 package template
 
+import org.jetbrains.dokka.DokkaException
 import org.jetbrains.dokka.base.renderers.DefaultRenderer
 import org.jetbrains.dokka.base.renderers.isImage
 import org.jetbrains.dokka.model.DisplaySourceSet
 import org.jetbrains.dokka.pages.*
 import org.jetbrains.dokka.plugability.DokkaContext
 
-class DocusaurusRenderer(context: DokkaContext) : DefaultRenderer<StringBuilder>(context) {
+class DocusaurusRenderer(
+    context: DokkaContext,
+    private val fileExtension: String = ".md"
+) : DefaultRenderer<StringBuilder>(context) {
 
     override fun buildError(node: ContentNode) {
         context.logger.warn("Docusaurus renderer has encountered problem. The unmatched node is $node")
@@ -18,7 +22,8 @@ class DocusaurusRenderer(context: DokkaContext) : DefaultRenderer<StringBuilder>
         }
 
     override fun StringBuilder.buildHeader(level: Int, node: ContentHeader, content: StringBuilder.() -> Unit) {
-        buildParagraph()
+        buildNewLine()
+        buildNewLine()
         append("#".repeat(level) + " ")
         content()
         buildNewLine()
@@ -47,7 +52,12 @@ class DocusaurusRenderer(context: DokkaContext) : DefaultRenderer<StringBuilder>
     }
 
     override fun StringBuilder.buildNavigation(page: PageNode) {
-        context.logger.warn("Navigation not implemented yet. This feature will come later.")
+        locationProvider.ancestors(page).asReversed().forEach { node ->
+            append("/")
+            if (node.isNavigable) buildLink(node, page)
+            else append(node.name)
+        }
+        buildNewParagrath()
     }
 
     override fun StringBuilder.buildNewLine() {
@@ -66,7 +76,57 @@ class DocusaurusRenderer(context: DokkaContext) : DefaultRenderer<StringBuilder>
         pageContext: ContentPage,
         sourceSetRestriction: Set<DisplaySourceSet>?
     ) {
-        context.logger.warn("Table not implemented yet. This feature will come later.")
+        buildNewLine()
+        if (node.dci.kind == ContentKind.Sample || node.dci.kind == ContentKind.Parameters) {
+            node.sourceSets.forEach { sourcesetData ->
+                append(sourcesetData.name)
+                buildNewLine()
+                buildTable(
+                    node.copy(
+                        children = node.children.filter { it.sourceSets.contains(sourcesetData) },
+                        dci = node.dci.copy(kind = ContentKind.Main)
+                    ), pageContext, sourceSetRestriction
+                )
+                buildNewLine()
+            }
+        } else {
+            val size = node.header.firstOrNull()?.children?.size ?: node.children.firstOrNull()?.children?.size ?: 0
+
+            if (node.header.isNotEmpty()) {
+                node.header.forEach { contentGroup ->
+                    append("| ")
+                    contentGroup.children.forEach { contentNode ->
+                        append(" ")
+                        contentNode.build(this, pageContext, contentNode.sourceSets)
+                        append(" | ")
+                    }
+                    append("\n")
+                }
+            } else {
+                append("| ".repeat(size))
+                if (size > 0) append("|\n")
+            }
+
+            append("|---".repeat(size))
+            if (size > 0) append("|\n")
+
+            node.children.forEach { contentGroup ->
+                val builder = StringBuilder()
+                contentGroup.children.forEach { contentNode ->
+                    builder.append("| ")
+                    builder.append("<a name=\"${contentNode.dci.dri.first()}\"></a>")
+                    builder.append(
+                        buildString { contentNode.build(this, pageContext) }.replace(
+                            Regex("#+ "),
+                            ""
+                        )
+                    )  // Workaround for headers inside tables
+                }
+                append(builder.toString().withEntersAsHtml())
+                append("|".repeat(size + 1 - contentGroup.children.size))
+                append("\n")
+            }
+        }
     }
 
     override fun StringBuilder.buildText(textNode: ContentText) {
@@ -78,10 +138,6 @@ class DocusaurusRenderer(context: DokkaContext) : DefaultRenderer<StringBuilder>
             append(decorators.reversed())
             append(textNode.text.takeLastWhile { it == ' ' })
         }
-    }
-
-    private fun StringBuilder.buildParagraph() {
-        append("Paragraph here! \n\n")
     }
 
     private fun StringBuilder.buildListItem(items: List<ContentNode>, pageContext: ContentPage) {
@@ -107,4 +163,56 @@ class DocusaurusRenderer(context: DokkaContext) : DefaultRenderer<StringBuilder>
             }
         }
     }
+
+    override suspend fun renderPage(page: PageNode) {
+        val path by lazy {
+            locationProvider.resolve(page, skipExtension = true)
+                ?: throw DokkaException("Cannot resolve path for ${page.name}")
+        }
+        when (page) {
+            is ContentPage -> outputWriter.write(
+                path,
+                buildPage(page, ::buildPageContent),
+                fileExtension
+            )
+            is RendererSpecificPage -> when (val strategy = page.strategy) {
+                is RenderingStrategy.Copy -> outputWriter.writeResources(strategy.from, path)
+                is RenderingStrategy.Write -> outputWriter.write(path, strategy.text, fileExtension)
+                is RenderingStrategy.Callback -> outputWriter.write(
+                    path,
+                    strategy.instructions(this, page),
+                    fileExtension
+                )
+                is RenderingStrategy.DriLocationResolvableWrite -> outputWriter.write(
+                    path,
+                    strategy.contentToResolve(locationProvider::resolve),
+                    ""
+                )
+                is RenderingStrategy.PageLocationResolvableWrite -> outputWriter.write(
+                    path,
+                    strategy.contentToResolve(locationProvider::resolve),
+                    ""
+                )
+                RenderingStrategy.DoNothing -> Unit
+            }
+            else -> throw AssertionError(
+                "Page ${page.name} cannot be rendered by renderer as it is not renderer specific nor contains content"
+            )
+        }
+    }
+
+    private fun StringBuilder.buildNewParagrath() {
+        buildNewLine()
+        buildNewLine()
+    }
+
+    private fun StringBuilder.buildLink(to: PageNode, from: PageNode) =
+        buildLink(locationProvider.resolve(to, from)!!) {
+            append(to.name)
+        }
+
+    private fun String.withEntersAsHtml(): String = replace("\n", "<br>")
+
+    private val PageNode.isNavigable: Boolean
+        get() = this !is RendererSpecificPage || strategy != RenderingStrategy.DoNothing
 }
