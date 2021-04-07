@@ -18,7 +18,12 @@ class DocusaurusRenderer(
 
     override fun buildPage(page: ContentPage, content: (StringBuilder, ContentPage) -> Unit): String =
         buildString {
-            buildDocusaurusHeader()
+            buildDocusaurusHeader(
+                id = page.hashCode().toString(),
+                title = page.name,
+                sidebarLabel = page.name,
+                slug = "noSlug" //Todo: Try use navigation here
+            )
             content(this, page)
         }
 
