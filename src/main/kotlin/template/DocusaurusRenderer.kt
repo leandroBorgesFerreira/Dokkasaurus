@@ -18,6 +18,7 @@ class DocusaurusRenderer(
 
     override fun buildPage(page: ContentPage, content: (StringBuilder, ContentPage) -> Unit): String =
         buildString {
+            buildDocusaurusHeader()
             content(this, page)
         }
 
@@ -57,7 +58,7 @@ class DocusaurusRenderer(
             if (node.isNavigable) buildLink(node, page)
             else append(node.name)
         }
-        buildNewParagrath()
+        buildNewParagraph()
     }
 
     override fun StringBuilder.buildNewLine() {
@@ -170,11 +171,7 @@ class DocusaurusRenderer(
                 ?: throw DokkaException("Cannot resolve path for ${page.name}")
         }
         when (page) {
-            is ContentPage -> outputWriter.write(
-                path,
-                buildPage(page, ::buildPageContent),
-                fileExtension
-            )
+            is ContentPage -> outputWriter.write(path, buildPage(page, ::buildPageContent), fileExtension)
             is RendererSpecificPage -> when (val strategy = page.strategy) {
                 is RenderingStrategy.Copy -> outputWriter.writeResources(strategy.from, path)
                 is RenderingStrategy.Write -> outputWriter.write(path, strategy.text, fileExtension)
@@ -201,7 +198,21 @@ class DocusaurusRenderer(
         }
     }
 
-    private fun StringBuilder.buildNewParagrath() {
+    private fun StringBuilder.buildDocusaurusHeader(
+        id: String = "defaultId",
+        title: String = "defaultTitle",
+        sidebarLabel: String = "defaultSidebarLabel",
+        slug: String = "defaultSlug",
+    ) {
+        append("---\n")
+        append("id: $id\n")
+        append("title: $title\n")
+        append("sidebar_label: $sidebarLabel\n")
+        append("slug: $slug\n")
+        append("---\n")
+    }
+
+    private fun StringBuilder.buildNewParagraph() {
         buildNewLine()
         buildNewLine()
     }
