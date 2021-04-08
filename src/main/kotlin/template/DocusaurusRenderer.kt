@@ -18,10 +18,7 @@ class DocusaurusRenderer(
 
     override fun buildPage(page: ContentPage, content: (StringBuilder, ContentPage) -> Unit): String =
         buildString {
-            buildDocusaurusHeader(
-                id = "${page.documentable?.name?.replace(" ", "")}-${page.documentable?.hashCode()}",
-                title = page.name,
-            )
+            buildDocusaurusHeader(page.name)
             content(this, page)
         }
 
@@ -201,17 +198,9 @@ class DocusaurusRenderer(
         }
     }
 
-    private fun StringBuilder.buildDocusaurusHeader(
-        id: String = "defaultId",
-        title: String = "defaultTitle",
-        sidebarLabel: String = "defaultSidebarLabel",
-        slug: String = "defaultSlug",
-    ) {
+    private fun StringBuilder.buildDocusaurusHeader(title: String = "defaultTitle") {
         append("---\n")
-        append("id: $id\n")
         append("title: $title\n")
-        append("sidebar_label: $sidebarLabel\n")
-        append("slug: $slug\n")
         append("---\n")
     }
 
