@@ -15,4 +15,5 @@ class DokkasaurusPlugin : DokkaPlugin() {
     val locationProvider by extending {
         dokkaBase.locationProviderFactory providing MarkdownLocationProvider::Factory override dokkaBase.locationProvider
     }
+
 }
