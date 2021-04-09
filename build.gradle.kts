@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "br.com.leandro"
-version = "0.0.23-SNAPSHOT"
+version = "0.0.31-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -18,6 +18,7 @@ repositories {
 
 val dokkaVersion: String by project
 dependencies {
+    implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.0")
     implementation(kotlin("stdlib"))
     compileOnly("org.jetbrains.dokka:dokka-core:$dokkaVersion")
     implementation("org.jetbrains.dokka:dokka-base:$dokkaVersion")

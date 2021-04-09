@@ -2,9 +2,17 @@ package template
 
 import org.jetbrains.dokka.CoreExtensions
 import org.jetbrains.dokka.base.DokkaBase
+import org.jetbrains.dokka.base.renderers.PackageListCreator
+import org.jetbrains.dokka.base.renderers.RootCreator
+import org.jetbrains.dokka.base.resolvers.shared.RecognizedLinkFormat
 import org.jetbrains.dokka.plugability.DokkaPlugin
+import org.jetbrains.dokka.transformers.pages.PageTransformer
+import template.location.MarkdownLocationProvider
+import template.renderer.DocusaurusRenderer
 
 class DokkasaurusPlugin : DokkaPlugin() {
+
+    val preprocessors by extensionPoint<PageTransformer>()
 
     private val dokkaBase by lazy { plugin<DokkaBase>() }
 
@@ -16,4 +24,13 @@ class DokkasaurusPlugin : DokkaPlugin() {
         dokkaBase.locationProviderFactory providing MarkdownLocationProvider::Factory override dokkaBase.locationProvider
     }
 
+    val rootCreator by extending {
+        preprocessors with RootCreator
+    }
+
+    val packageListCreator by extending {
+        (preprocessors
+                providing { PackageListCreator(it, RecognizedLinkFormat.DokkaGFM) }
+                order { after(rootCreator) })
+    }
 }

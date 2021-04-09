@@ -1,4 +1,4 @@
-package template
+package template.renderer
 
 import org.jetbrains.dokka.DokkaException
 import org.jetbrains.dokka.base.renderers.DefaultRenderer
@@ -6,11 +6,15 @@ import org.jetbrains.dokka.base.renderers.isImage
 import org.jetbrains.dokka.model.DisplaySourceSet
 import org.jetbrains.dokka.pages.*
 import org.jetbrains.dokka.plugability.DokkaContext
+import template.GfmCommand.Companion.templateCommand
+import template.ResolveLinkGfmCommand
 
 class DocusaurusRenderer(
     context: DokkaContext,
     private val fileExtension: String = ".md"
 ) : DefaultRenderer<StringBuilder>(context) {
+
+    private val isPartial = context.configuration.delayTemplateSubstitution
 
     override fun buildError(node: ContentNode) {
         context.logger.warn("Docusaurus renderer has encountered problem. The unmatched node is $node")
@@ -123,7 +127,7 @@ class DocusaurusRenderer(
                         )
                     )  // Workaround for headers inside tables
                 }
-                append(builder.toString().withEntersAsHtml())
+                append(builder.toString())
                 append("|".repeat(size + 1 - contentGroup.children.size))
                 append("\n")
             }
@@ -135,35 +139,27 @@ class DocusaurusRenderer(
             val decorators = parseDecorators(textNode.style)
             append(textNode.text.takeWhile { it == ' ' })
             append(decorators)
-            append(textNode.text.trim())
+            append(textNode.text.replace("<", "`<`").replace(">", "`>`").trim())
             append(decorators.reversed())
             append(textNode.text.takeLastWhile { it == ' ' })
         }
     }
 
-    private fun StringBuilder.buildListItem(items: List<ContentNode>, pageContext: ContentPage) {
-        items.forEach {
-            if (it is ContentList) {
-                buildList(it, pageContext)
-            } else {
-                append("<li>")
-                append(buildString { it.build(this, pageContext, it.sourceSets) }.trim())
-                append("</li>")
-            }
-        }
-    }
-
-    private fun parseDecorators(styles: Set<Style>) = buildString {
-        styles.forEach {
-            when (it) {
-                TextStyle.Bold -> append("**")
-                TextStyle.Italic -> append("*")
-                TextStyle.Strong -> append("**")
-                TextStyle.Strikethrough -> append("~~")
-                else -> Unit
-            }
-        }
-    }
+//    override fun StringBuilder.buildDRILink(
+//        node: ContentDRILink,
+//        pageContext: ContentPage,
+//        sourceSetRestriction: Set<DisplaySourceSet>?
+//    ) {
+//        locationProvider.resolve(node.address, node.sourceSets, pageContext)?.let {
+//            buildLink(it) {
+//                buildText(node.children, pageContext, sourceSetRestriction)
+//            }
+//        } ?: if (isPartial) {
+//            templateCommand(ResolveLinkGfmCommand(node.address)) {
+//                buildText(node.children, pageContext, sourceSetRestriction)
+//            }
+//        } else Unit
+//    }
 
     override suspend fun renderPage(page: PageNode) {
         val path by lazy {
@@ -195,6 +191,30 @@ class DocusaurusRenderer(
             else -> throw AssertionError(
                 "Page ${page.name} cannot be rendered by renderer as it is not renderer specific nor contains content"
             )
+        }
+    }
+
+    private fun StringBuilder.buildListItem(items: List<ContentNode>, pageContext: ContentPage) {
+        items.forEach {
+            if (it is ContentList) {
+                buildList(it, pageContext)
+            } else {
+                append("<li>")
+                append(buildString { it.build(this, pageContext, it.sourceSets) }.trim())
+                append("</li>")
+            }
+        }
+    }
+
+    private fun parseDecorators(styles: Set<Style>) = buildString {
+        styles.forEach {
+            when (it) {
+                TextStyle.Bold -> append("**")
+                TextStyle.Italic -> append("*")
+                TextStyle.Strong -> append("**")
+                TextStyle.Strikethrough -> append("~~")
+                else -> Unit
+            }
         }
     }
 
