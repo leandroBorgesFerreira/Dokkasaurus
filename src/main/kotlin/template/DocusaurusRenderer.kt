@@ -219,10 +219,4 @@ class DocusaurusRenderer(
     private val PageNode.isNavigable: Boolean
         get() = this !is RendererSpecificPage || strategy != RenderingStrategy.DoNothing
 
-    private fun ContentPage.generateSlug(): String {
-        val documentName = documentable?.name?.replace(" ", "") ?: "slug"
-
-        return documentName
-    }
-
 }
