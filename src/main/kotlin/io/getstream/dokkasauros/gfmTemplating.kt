@@ -1,4 +1,4 @@
-package template
+package io.getstream.dokkasauros
 
 import org.jetbrains.dokka.base.templating.toJsonString
 import org.jetbrains.dokka.links.DRI

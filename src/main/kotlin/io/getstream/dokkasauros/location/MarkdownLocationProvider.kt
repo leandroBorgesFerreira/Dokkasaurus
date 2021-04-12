@@ -1,4 +1,4 @@
-package template.location
+package io.getstream.dokkasauros.location
 
 import org.jetbrains.dokka.base.resolvers.local.DokkaLocationProvider
 import org.jetbrains.dokka.base.resolvers.local.LocationProviderFactory

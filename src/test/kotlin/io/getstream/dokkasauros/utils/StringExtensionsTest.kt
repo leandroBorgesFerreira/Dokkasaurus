@@ -1,4 +1,4 @@
-package template.utils
+package io.getstream.dokkasauros.utils
 
 import org.junit.Test
 import org.junit.jupiter.api.Assertions
@@ -22,4 +22,3 @@ internal class StringExtensionsTest {
         )
     }
 }
-

@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "br.com.leandro"
-version = "0.0.33-SNAPSHOT"
+version = "0.1.0-SNAPSHOT"
 
 repositories {
     mavenCentral()
