@@ -9,7 +9,7 @@ plugins {
 }
 
 group = "br.com.leandro"
-version = "0.0.31-SNAPSHOT"
+version = "0.0.33-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -17,6 +17,7 @@ repositories {
 }
 
 val dokkaVersion: String by project
+
 dependencies {
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin:2.12.0")
     implementation(kotlin("stdlib"))
@@ -25,6 +26,8 @@ dependencies {
 
     testImplementation(kotlin("test-junit"))
     testImplementation("org.jetbrains.dokka:dokka-test-api:$dokkaVersion")
+
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.7.1")
 }
 
 val dokkaOutputDir = "$buildDir/dokka"

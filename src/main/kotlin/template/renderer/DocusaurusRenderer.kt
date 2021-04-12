@@ -3,11 +3,11 @@ package template.renderer
 import org.jetbrains.dokka.DokkaException
 import org.jetbrains.dokka.base.renderers.DefaultRenderer
 import org.jetbrains.dokka.base.renderers.isImage
+import org.jetbrains.dokka.base.resolvers.local.LocationProvider
 import org.jetbrains.dokka.model.DisplaySourceSet
 import org.jetbrains.dokka.pages.*
 import org.jetbrains.dokka.plugability.DokkaContext
-import template.GfmCommand.Companion.templateCommand
-import template.ResolveLinkGfmCommand
+import template.utils.scapeTags
 
 class DocusaurusRenderer(
     context: DokkaContext,
@@ -22,7 +22,7 @@ class DocusaurusRenderer(
 
     override fun buildPage(page: ContentPage, content: (StringBuilder, ContentPage) -> Unit): String =
         buildString {
-            buildDocusaurusHeader(page.name)
+            buildDocusaurusHeader(page.title(locationProvider))
             content(this, page)
         }
 
@@ -62,6 +62,7 @@ class DocusaurusRenderer(
             if (node.isNavigable) buildLink(node, page)
             else append(node.name)
         }
+
         buildNewParagraph()
     }
 
@@ -139,7 +140,7 @@ class DocusaurusRenderer(
             val decorators = parseDecorators(textNode.style)
             append(textNode.text.takeWhile { it == ' ' })
             append(decorators)
-            append(textNode.text.replace("<", "`<`").replace(">", "`>`").trim())
+            append(textNode.text.scapeTags().trim())
             append(decorators.reversed())
             append(textNode.text.takeLastWhile { it == ' ' })
         }
@@ -239,4 +240,9 @@ class DocusaurusRenderer(
     private val PageNode.isNavigable: Boolean
         get() = this !is RendererSpecificPage || strategy != RenderingStrategy.DoNothing
 
+    private fun PageNode.title(locationProvider: LocationProvider): String =
+        locationProvider.resolve(this)
+            ?.substringAfterLast("/")
+            ?.substringBeforeLast(".")
+            ?: this.name
 }
